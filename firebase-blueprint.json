@@ -1,0 +1,453 @@
+{
+  "entities": {
+    "UserPublicProfile": {
+      "title": "UserPublicProfile",
+      "description": "Non-PII account metadata for an authenticated Celebrate AI planner.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the user.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name shown in the planner workspace.",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "Optional avatar URL from Google Auth or profile.",
+          "minLength": 0,
+          "maxLength": 500
+        },
+        "preferredCity": {
+          "type": "string",
+          "description": "Default Indian metro city for event planning.",
+          "enum": ["Bengaluru", "Mumbai", "Delhi", "Hyderabad", "Chennai"],
+          "maxLength": 32
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the profile was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the profile was last updated."
+        }
+      },
+      "required": ["uid", "displayName", "photoURL", "preferredCity", "createdAt", "updatedAt"]
+    },
+    "UserPrivateInfo": {
+      "title": "UserPrivateInfo",
+      "description": "Isolated PII record (email and optional phone) accessible exclusively to the account owner.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID matching the parent user path.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Verified email address of the user.",
+          "minLength": 3,
+          "maxLength": 254
+        },
+        "phone": {
+          "type": "string",
+          "description": "Optional contact number for vendor coordination.",
+          "minLength": 0,
+          "maxLength": 24
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the private record was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the private record was last updated."
+        }
+      },
+      "required": ["uid", "email", "phone", "createdAt", "updatedAt"]
+    },
+    "CelebrationEvent": {
+      "title": "CelebrationEvent",
+      "description": "Root celebration event blueprint owned by an authenticated user.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Event identifier.",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "UID of the event owner.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "rsvpToken": {
+          "type": "string",
+          "description": "Shareable RSVP token.",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "description": "Celebration title.",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "eventType": {
+          "type": "string",
+          "description": "Type of Indian celebration.",
+          "enum": ["wedding", "birthday", "anniversary", "corporate", "festival"],
+          "maxLength": 24
+        },
+        "subTradition": {
+          "type": "string",
+          "description": "Regional or cultural tradition.",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "date": {
+          "type": "string",
+          "description": "ISO date YYYY-MM-DD.",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "city": {
+          "type": "string",
+          "description": "Event host city.",
+          "enum": ["Bengaluru", "Mumbai", "Delhi", "Hyderabad", "Chennai"],
+          "maxLength": 32
+        },
+        "guestCount": {
+          "type": "number",
+          "description": "Expected guest count (10 to 5000)."
+        },
+        "totalBudget": {
+          "type": "number",
+          "description": "Total target budget in INR (25000 to 100000000)."
+        },
+        "vibePreferences": {
+          "type": "string",
+          "description": "Atmosphere and aesthetic notes.",
+          "minLength": 0,
+          "maxLength": 500
+        },
+        "dietaryNeeds": {
+          "type": "array",
+          "description": "Bounded dietary tags (max 10 items)."
+        },
+        "budgetTradeoffNote": {
+          "type": "string",
+          "description": "Constraint optimizer explanation.",
+          "minLength": 0,
+          "maxLength": 1000
+        },
+        "shortlistedVendorIds": {
+          "type": "array",
+          "description": "Bounded vendor IDs shortlisted for the event (max 30 items)."
+        },
+        "budget": {
+          "type": "array",
+          "description": "Bounded 6-category budget allocation maps."
+        },
+        "plan": {
+          "type": "object",
+          "description": "Structured grounded event plan map."
+        },
+        "invitation": {
+          "type": "object",
+          "description": "Structured trilingual invitation bundle map."
+        },
+        "status": {
+          "type": "string",
+          "description": "Lifecycle state; archived is terminal.",
+          "enum": ["planning", "confirmed", "archived"],
+          "maxLength": 24
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": [
+        "id",
+        "ownerId",
+        "rsvpToken",
+        "title",
+        "eventType",
+        "subTradition",
+        "date",
+        "city",
+        "guestCount",
+        "totalBudget",
+        "vibePreferences",
+        "dietaryNeeds",
+        "budgetTradeoffNote",
+        "shortlistedVendorIds",
+        "budget",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "EventTask": {
+      "title": "EventTask",
+      "description": "Backward-counted checklist milestone belonging to a CelebrationEvent.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "eventId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 240
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "dueDate": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "daysBefore": {
+          "type": "number",
+          "description": "Days prior to event date (0 to 3650)."
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["high", "medium", "low"],
+          "maxLength": 16
+        },
+        "completed": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "eventId",
+        "ownerId",
+        "title",
+        "category",
+        "dueDate",
+        "daysBefore",
+        "priority",
+        "completed",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "EventGuest": {
+      "title": "EventGuest",
+      "description": "Invited guest and RSVP record belonging to a CelebrationEvent.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "eventId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "contact": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 120
+        },
+        "status": {
+          "type": "string",
+          "enum": ["yes", "no", "pending"],
+          "maxLength": 16
+        },
+        "partySize": {
+          "type": "number",
+          "description": "Headcount for this invitation (1 to 20)."
+        },
+        "dietaryPreference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "eventId",
+        "ownerId",
+        "name",
+        "contact",
+        "status",
+        "partySize",
+        "dietaryPreference",
+        "notes",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ChatMessageDoc": {
+      "title": "ChatMessageDoc",
+      "description": "Conversational co-planner turn belonging to a CelebrationEvent.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "eventId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["user", "assistant"],
+          "maxLength": 16
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "changedSections": {
+          "type": "array",
+          "description": "Bounded list of updated plan sections (max 10)."
+        },
+        "sentAtIso": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "eventId",
+        "ownerId",
+        "role",
+        "content",
+        "changedSections",
+        "sentAtIso",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserPublicProfile" },
+      "description": "Non-PII planner profile document keyed by Firebase Auth UID."
+    },
+    "/users/{userId}/private/{docId}": {
+      "schema": { "$ref": "#/entities/UserPrivateInfo" },
+      "description": "Split-collection PII storage (email, phone) strictly isolated to userId."
+    },
+    "/events/{eventId}": {
+      "schema": { "$ref": "#/entities/CelebrationEvent" },
+      "description": "Root celebration plans owned by authenticated planners."
+    },
+    "/events/{eventId}/tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/EventTask" },
+      "description": "Checklist tasks subcollection gated by parent event ownership."
+    },
+    "/events/{eventId}/guests/{guestId}": {
+      "schema": { "$ref": "#/entities/EventGuest" },
+      "description": "Guest list and RSVP subcollection gated by parent event ownership."
+    },
+    "/events/{eventId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/ChatMessageDoc" },
+      "description": "Conversational co-planner message log gated by parent event ownership."
+    }
+  }
+}

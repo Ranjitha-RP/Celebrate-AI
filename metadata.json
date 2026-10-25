@@ -1,0 +1,6 @@
+{
+  "name": "Celebrate AI",
+  "description": "AI-powered Indian celebration and event planner with RAG-grounded vendor citations, smart constraint-based budget optimization, trilingual printable invitations, cultural muhurat guidance, and guest RSVP tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

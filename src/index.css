@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Fraunces", Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-canvas: #FCFBF8;
+  --color-surface: #FFFFFF;
+  --color-ink: #1C1917;
+  --color-muted: #57534E;
+  --color-kumkum: #BE123C;
+  --color-kumkum-hover: #9F1239;
+  --color-marigold: #D97706;
+  --color-emerald-leaf: #15803D;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    background-color: #FCFBF8;
+    color: #1C1917;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, .font-editorial {
+    font-family: var(--font-display);
+    text-wrap: balance;
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-invitation-card,
+  #printable-invitation-card * {
+    visibility: visible;
+  }
+  #printable-invitation-card {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    max-width: 100% !important;
+    border: 2px solid #D97706 !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 40px !important;
+  }
+}

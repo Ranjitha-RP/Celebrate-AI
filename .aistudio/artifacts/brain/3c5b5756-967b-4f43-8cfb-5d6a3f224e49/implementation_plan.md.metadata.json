@@ -1,0 +1,6 @@
+{
+  "summary":  "Comprehensive implementation plan for Celebrate AI — a full-stack Indian celebration and event planning platform built with Node.js/Express, Gemini API (structured JSON + semantic vector RAG), SQLite persistence, constraint-based budget optimization, conversational plan patching, trilingual printable invitations, cultural muhurat/ritual guidance, day-of run sheets, and public guest RSVP portals.",
+  "updatedAt":  "2026-10-25T07:07:43.146859074Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}

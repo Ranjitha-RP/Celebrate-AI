@@ -1,0 +1,448 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pillar 0: Global Default-Deny Catch-All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global Primitives
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isVerifiedUser() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidEventId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 64 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidCity(city) {
+      return city is string && city.size() <= 32 && city in ['Bengaluru', 'Mumbai', 'Delhi', 'Hyderabad', 'Chennai'];
+    }
+
+    function isValidEventType(eventType) {
+      return eventType is string && eventType.size() <= 24 && eventType in ['wedding', 'birthday', 'anniversary', 'corporate', 'festival'];
+    }
+
+    function isValidPlanMap(plan) {
+      return plan is map
+        && plan.keys().hasOnly([
+          'summaryPitch', 'theme', 'venueSuggestions', 'cateringPlan',
+          'decorPlan', 'entertainmentPlan', 'photographyPlan',
+          'culturalAdvisory', 'runSheet', 'generatedVia'
+        ])
+        && plan.summaryPitch is string && plan.summaryPitch.size() <= 1500
+        && plan.venueSuggestions is list && plan.venueSuggestions.size() <= 5
+        && plan.runSheet is list && plan.runSheet.size() <= 20;
+    }
+
+    function isValidInvitationMap(inv) {
+      return inv is map
+        && inv.keys().hasOnly(['tone', 'hostLine', 'english', 'hindi', 'kannada'])
+        && inv.tone is string && inv.tone.size() <= 80
+        && inv.hostLine is string && inv.hostLine.size() <= 200;
+    }
+
+    // Blueprint Validation Helpers (No existing() or diff() inside helpers)
+    function isValidUserPublicProfile(data) {
+      return data.keys().hasAll(['uid', 'displayName', 'photoURL', 'preferredCity', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'displayName', 'photoURL', 'preferredCity', 'createdAt', 'updatedAt'])
+        && isValidId(data.uid)
+        && data.uid == request.auth.uid
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80
+        && data.photoURL is string && data.photoURL.size() <= 500
+        && isValidCity(data.preferredCity)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidUserPrivateInfo(data) {
+      return data.keys().hasAll(['uid', 'email', 'phone', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'phone', 'createdAt', 'updatedAt'])
+        && isValidId(data.uid)
+        && data.uid == request.auth.uid
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 254
+        && data.email == request.auth.token.email
+        && data.phone is string && data.phone.size() <= 24
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCelebrationEvent(data) {
+      return data.keys().hasAll([
+          'id', 'ownerId', 'rsvpToken', 'title', 'eventType', 'subTradition',
+          'date', 'city', 'guestCount', 'totalBudget', 'vibePreferences',
+          'dietaryNeeds', 'budgetTradeoffNote', 'shortlistedVendorIds',
+          'budget', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'ownerId', 'rsvpToken', 'title', 'eventType', 'subTradition',
+          'date', 'city', 'guestCount', 'totalBudget', 'vibePreferences',
+          'dietaryNeeds', 'budgetTradeoffNote', 'shortlistedVendorIds',
+          'budget', 'plan', 'invitation', 'status', 'createdAt', 'updatedAt'
+        ])
+        && isValidEventId(data.id)
+        && isValidId(data.ownerId)
+        && data.ownerId == request.auth.uid
+        && isValidEventId(data.rsvpToken)
+        && data.title is string && data.title.size() >= 2 && data.title.size() <= 120
+        && isValidEventType(data.eventType)
+        && data.subTradition is string && data.subTradition.size() >= 1 && data.subTradition.size() <= 120
+        && data.date is string && data.date.size() == 10 && data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && isValidCity(data.city)
+        && data.guestCount is int && data.guestCount >= 10 && data.guestCount <= 5000
+        && (data.totalBudget is int || data.totalBudget is float) && data.totalBudget >= 25000 && data.totalBudget <= 100000000
+        && data.vibePreferences is string && data.vibePreferences.size() <= 500
+        && data.dietaryNeeds is list && data.dietaryNeeds.size() <= 10
+        && (data.dietaryNeeds.size() == 0 || (data.dietaryNeeds[0] is string && data.dietaryNeeds[0].size() <= 60))
+        && data.budgetTradeoffNote is string && data.budgetTradeoffNote.size() <= 1000
+        && data.shortlistedVendorIds is list && data.shortlistedVendorIds.size() <= 30
+        && (data.shortlistedVendorIds.size() == 0 || (data.shortlistedVendorIds[0] is string && data.shortlistedVendorIds[0].size() <= 64))
+        && data.budget is list && data.budget.size() == 6
+        && data.budget[0] is map
+        && data.budget[0].keys().hasOnly([
+          'category', 'label', 'plannedAmount', 'actualSpent',
+          'minPct', 'maxPct', 'priorityWeight', 'locked', 'rationale'
+        ])
+        && (!('plan' in data) || data.plan == null || isValidPlanMap(data.plan))
+        && (!('invitation' in data) || data.invitation == null || isValidInvitationMap(data.invitation))
+        && data.status is string && data.status.size() <= 24 && data.status in ['planning', 'confirmed', 'archived']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidEventTask(data) {
+      return data.keys().hasAll([
+          'id', 'eventId', 'ownerId', 'title', 'category',
+          'dueDate', 'daysBefore', 'priority', 'completed', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'eventId', 'ownerId', 'title', 'category',
+          'dueDate', 'daysBefore', 'priority', 'completed', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && isValidEventId(data.eventId)
+        && isValidId(data.ownerId)
+        && data.ownerId == request.auth.uid
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 240
+        && data.category is string && data.category.size() >= 1 && data.category.size() <= 40
+        && data.dueDate is string && data.dueDate.size() == 10 && data.dueDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && data.daysBefore is int && data.daysBefore >= 0 && data.daysBefore <= 3650
+        && data.priority is string && data.priority.size() <= 16 && data.priority in ['high', 'medium', 'low']
+        && data.completed is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidEventGuest(data) {
+      return data.keys().hasAll([
+          'id', 'eventId', 'ownerId', 'name', 'contact',
+          'status', 'partySize', 'dietaryPreference', 'notes', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'eventId', 'ownerId', 'name', 'contact',
+          'status', 'partySize', 'dietaryPreference', 'notes', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && isValidEventId(data.eventId)
+        && isValidId(data.ownerId)
+        && data.ownerId == request.auth.uid
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 120
+        && data.contact is string && data.contact.size() <= 120
+        && data.status is string && data.status.size() <= 16 && data.status in ['yes', 'no', 'pending']
+        && data.partySize is int && data.partySize >= 1 && data.partySize <= 20
+        && data.dietaryPreference is string && data.dietaryPreference.size() >= 1 && data.dietaryPreference.size() <= 80
+        && data.notes is string && data.notes.size() <= 500
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidChatMessage(data) {
+      return data.keys().hasAll([
+          'id', 'eventId', 'ownerId', 'role', 'content', 'changedSections', 'sentAtIso', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'eventId', 'ownerId', 'role', 'content', 'changedSections', 'sentAtIso', 'createdAt'
+        ])
+        && isValidId(data.id)
+        && isValidEventId(data.eventId)
+        && isValidId(data.ownerId)
+        && data.ownerId == request.auth.uid
+        && data.role is string && data.role.size() <= 16 && data.role in ['user', 'assistant']
+        && data.content is string && data.content.size() >= 1 && data.content.size() <= 4000
+        && data.changedSections is list && data.changedSections.size() <= 10
+        && (data.changedSections.size() == 0 || (data.changedSections[0] is string && data.changedSections[0].size() <= 40))
+        && data.sentAtIso is string && data.sentAtIso.size() >= 1 && data.sentAtIso.size() <= 40
+        && data.createdAt is timestamp;
+    }
+
+    // Master Gate Relational Helpers
+    function isParentEventOwner(eventId) {
+      return exists(/databases/$(database)/documents/events/$(eventId))
+        && get(/databases/$(database)/documents/events/$(eventId)).data.ownerId == request.auth.uid;
+    }
+
+    function isParentEventMutableOwner(eventId) {
+      return exists(/databases/$(database)/documents/events/$(eventId))
+        && get(/databases/$(database)/documents/events/$(eventId)).data.ownerId == request.auth.uid
+        && get(/databases/$(database)/documents/events/$(eventId)).data.status != 'archived';
+    }
+
+    function canWriteSubresource(eventId) {
+      return isParentEventMutableOwner(eventId)
+        || (
+          existsAfter(/databases/$(database)/documents/events/$(eventId))
+          && getAfter(/databases/$(database)/documents/events/$(eventId)).data.ownerId == request.auth.uid
+          && getAfter(/databases/$(database)/documents/events/$(eventId)).data.status != 'archived'
+        );
+    }
+
+    // 1. /users/{userId} — Non-PII User Profile
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false;
+
+      allow create: if isOwner(userId)
+        && isValidId(userId)
+        && isValidUserPublicProfile(incoming())
+        && incoming().uid == userId
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isOwner(userId)
+        && isValidId(userId)
+        && isValidUserPublicProfile(incoming())
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          // Action: UpdateProfilePreferences
+          incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'preferredCity', 'updatedAt'])
+        );
+
+      allow delete: if false;
+
+      // 2. /users/{userId}/private/{docId} — Split-Collection Isolated PII
+      match /private/{docId} {
+        allow get: if isOwner(userId) && isValidId(userId) && docId == 'profile';
+        allow list: if false;
+
+        allow create: if isOwner(userId)
+          && isValidId(userId)
+          && docId == 'profile'
+          && isValidUserPrivateInfo(incoming())
+          && incoming().uid == userId
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && (
+            exists(/databases/$(database)/documents/users/$(userId))
+            || existsAfter(/databases/$(database)/documents/users/$(userId))
+          );
+
+        allow update: if isOwner(userId)
+          && isValidId(userId)
+          && docId == 'profile'
+          && isValidUserPrivateInfo(incoming())
+          && incoming().uid == existing().uid
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && exists(/databases/$(database)/documents/users/$(userId))
+          && (
+            // Action: UpdateContactInfo
+            incoming().diff(existing()).affectedKeys().hasOnly(['email', 'phone', 'updatedAt'])
+          );
+
+        allow delete: if false;
+      }
+    }
+
+    // 3. /events/{eventId} — Root Celebration Blueprints
+    match /events/{eventId} {
+      allow get: if isVerifiedUser()
+        && isValidEventId(eventId)
+        && (resource == null || existing().ownerId == request.auth.uid);
+
+      // Pillar 8: Secure List Query without get()/exists() cost explosion
+      allow list: if isVerifiedUser()
+        && existing().ownerId == request.auth.uid;
+
+      allow create: if isVerifiedUser()
+        && isValidEventId(eventId)
+        && isValidCelebrationEvent(incoming())
+        && incoming().id == eventId
+        && incoming().status in ['planning', 'confirmed']
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && (
+          exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          || existsAfter(/databases/$(database)/documents/users/$(request.auth.uid))
+        );
+
+      allow update: if isVerifiedUser()
+        && isValidEventId(eventId)
+        && isValidCelebrationEvent(incoming())
+        && existing().ownerId == request.auth.uid
+        && existing().status != 'archived'
+        && incoming().id == existing().id
+        && incoming().ownerId == existing().ownerId
+        && incoming().rsvpToken == existing().rsvpToken
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          // Action: SyncEventPlanOrBudget
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'title', 'eventType', 'subTradition', 'date', 'city',
+            'guestCount', 'totalBudget', 'vibePreferences', 'dietaryNeeds',
+            'budgetTradeoffNote', 'shortlistedVendorIds', 'budget',
+            'plan', 'invitation', 'status', 'updatedAt'
+          ])
+        );
+
+      allow delete: if isVerifiedUser()
+        && isValidEventId(eventId)
+        && existing().ownerId == request.auth.uid;
+
+      // 4. /events/{eventId}/tasks/{taskId}
+      match /tasks/{taskId} {
+        allow get: if isVerifiedUser()
+          && isValidEventId(eventId)
+          && isValidId(taskId)
+          && existing().ownerId == request.auth.uid
+          && isParentEventOwner(eventId);
+
+        allow list: if isVerifiedUser()
+          && existing().ownerId == request.auth.uid;
+
+        allow create: if isVerifiedUser()
+          && isValidEventId(eventId)
+          && isValidId(taskId)
+          && isValidEventTask(incoming())
+          && incoming().id == taskId
+          && incoming().eventId == eventId
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && canWriteSubresource(eventId);
+
+        allow update: if isVerifiedUser()
+          && isValidEventId(eventId)
+          && isValidId(taskId)
+          && isValidEventTask(incoming())
+          && existing().ownerId == request.auth.uid
+          && incoming().id == existing().id
+          && incoming().eventId == existing().eventId
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && isParentEventMutableOwner(eventId)
+          && (
+            // Action: ToggleOrEditTask
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'title', 'category', 'dueDate', 'daysBefore', 'priority', 'completed', 'updatedAt'
+            ])
+          );
+
+        allow delete: if isVerifiedUser()
+          && isValidEventId(eventId)
+          && isValidId(taskId)
+          && existing().ownerId == request.auth.uid
+          && isParentEventOwner(eventId);
+      }
+
+      // 5. /events/{eventId}/guests/{guestId}
+      match /guests/{guestId} {
+        allow get: if isVerifiedUser()
+          && isValidEventId(eventId)
+          && isValidId(guestId)
+          && existing().ownerId == request.auth.uid
+          && isParentEventOwner(eventId);
+
+        allow list: if isVerifiedUser()
+          && existing().ownerId == request.auth.uid;
+
+        allow create: if isVerifiedUser()
+          && isValidEventId(eventId)
+          && isValidId(guestId)
+          && isValidEventGuest(incoming())
+          && incoming().id == guestId
+          && incoming().eventId == eventId
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && canWriteSubresource(eventId);
+
+        allow update: if isVerifiedUser()
+          && isValidEventId(eventId)
+          && isValidId(guestId)
+          && isValidEventGuest(incoming())
+          && existing().ownerId == request.auth.uid
+          && incoming().id == existing().id
+          && incoming().eventId == existing().eventId
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && isParentEventMutableOwner(eventId)
+          && (
+            // Action: UpdateGuestRsvp
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'name', 'contact', 'status', 'partySize', 'dietaryPreference', 'notes', 'updatedAt'
+            ])
+          );
+
+        allow delete: if isVerifiedUser()
+          && isValidEventId(eventId)
+          && isValidId(guestId)
+          && existing().ownerId == request.auth.uid
+          && isParentEventOwner(eventId);
+      }
+
+      // 6. /events/{eventId}/messages/{messageId}
+      match /messages/{messageId} {
+        allow get: if isVerifiedUser()
+          && isValidEventId(eventId)
+          && isValidId(messageId)
+          && existing().ownerId == request.auth.uid
+          && isParentEventOwner(eventId);
+
+        allow list: if isVerifiedUser()
+          && existing().ownerId == request.auth.uid;
+
+        allow create: if isVerifiedUser()
+          && isValidEventId(eventId)
+          && isValidId(messageId)
+          && isValidChatMessage(incoming())
+          && incoming().id == messageId
+          && incoming().eventId == eventId
+          && incoming().createdAt == request.time
+          && canWriteSubresource(eventId);
+
+        // Chat log messages are append-only (immutable once recorded)
+        allow update: if false;
+
+        allow delete: if isVerifiedUser()
+          && isValidEventId(eventId)
+          && isValidId(messageId)
+          && existing().ownerId == request.auth.uid
+          && isParentEventOwner(eventId);
+      }
+    }
+  }
+}
